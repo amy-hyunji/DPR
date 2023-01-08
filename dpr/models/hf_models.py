@@ -285,6 +285,8 @@ class BertTensorizer(Tensorizer):
         add_special_tokens: bool = True,
         apply_max_len: bool = True,
     ):
+        if not isinstance(text, str):
+            text = ""
         text = text.strip()
         # tokenizer automatic padding is explicitly disabled since its inconsistent behavior
         # TODO: move max len to methods params?

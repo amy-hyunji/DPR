@@ -1,8 +1,55 @@
 # @package _group_
 
+wow_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/wow-train.json #data.retriever.kilt-nq-train
+
+wow_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/wow-dev.json #data.retriever.kilt-nq-train
+
+
+zsre_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/zsre-train.json #data.retriever.kilt-nq-train
+
+zsre_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/zsre-dev.json #data.retriever.kilt-nq-train
+
+
+trex_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/trex-train.json #data.retriever.kilt-nq-train
+
+trex_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/trex-dev.json #data.retriever.kilt-nq-train
+
+
+
+
+nq_tqa_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-nq-tqa-train.json #data.retriever.kilt-nq-train
+
+nq_tqa_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-nq-tqa-dev.json #data.retriever.kilt-nq-dev
+
+qa_train:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/qa-train.json #data.retriever.kilt-nq-train
+
+qa_dev:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/qa-dev.json #data.retriever.kilt-nq-dev
+
+
+
 nq_train:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: data.retriever.nq-train
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-nq-train.json #data.retriever.kilt-nq-train
 
 nq_train_hn1:
   _target_: dpr.data.biencoder_data.JsonQADataset
@@ -10,15 +57,15 @@ nq_train_hn1:
 
 nq_dev:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: data.retriever.nq-dev
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-nq-dev.json #data.retriever.kilt-nq-dev
 
 trivia_train:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: data.retriever.trivia-train
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-tqa-train.json #data.retriever.kilt-trivia-train
 
 trivia_dev:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: data.retriever.trivia-dev
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-tqa-dev.json  #data.retriever.kilt-trivia-dev
 
 squad1_train:
   _target_: dpr.data.biencoder_data.JsonQADataset

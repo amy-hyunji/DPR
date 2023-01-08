@@ -88,7 +88,8 @@ def main(cfg: DictConfig):
     assert cfg.ctx_src, "Please specify passages source as ctx_src param"
 
     cfg = setup_cfg_gpu(cfg)
-
+    cfg.batch_size=3072
+    
     saved_state = load_states_from_checkpoint(cfg.model_file)
     set_cfg_params_from_state(saved_state.encoder_params, cfg)
 

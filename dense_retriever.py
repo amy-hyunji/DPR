@@ -72,8 +72,8 @@ def generate_question_vectors(
                 batch_tensors = [tensorizer.text_to_tensor(q) for q in batch_questions]
 
             # TODO: this only works for Wav2vec pipeline but will crash the regular text pipeline
-            max_vector_len = max(q_t.size(1) for q_t in batch_tensors)
-            min_vector_len = min(q_t.size(1) for q_t in batch_tensors)
+            max_vector_len = max(q_t.size(0) for q_t in batch_tensors)
+            min_vector_len = min(q_t.size(0) for q_t in batch_tensors)
 
             if max_vector_len != min_vector_len:
                 # TODO: _pad_to_len move to utils
@@ -570,6 +570,7 @@ def main(cfg: DictConfig):
         ctx_files_patterns = cfg.encoded_ctx_files
 
         logger.info("ctx_files_patterns: %s", ctx_files_patterns)
+        #id_prefixes.append(id_prefixes[0])
         if ctx_files_patterns:
             assert len(ctx_files_patterns) == len(id_prefixes), "ctx len={} pref leb={}".format(
                 len(ctx_files_patterns), len(id_prefixes)

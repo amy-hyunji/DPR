@@ -123,6 +123,7 @@ class BiEncoderTrainer(object):
 
         single_ds_iterator_cls = LocalShardedDataIterator if self.cfg.local_shards_dataloader else ShardedDataIterator
 
+        print(f"Batch size: {batch_size}")
         sharded_iterators = [
             single_ds_iterator_cls(
                 ds,
@@ -758,6 +759,10 @@ def main(cfg: DictConfig):
 
     cfg = setup_cfg_gpu(cfg)
     set_seed(cfg)
+
+    cfg.train.batch_size=32
+    cfg.train.dev_batch_size=32
+    #cfg.train.log_batch_step=1
 
     if cfg.local_rank in [-1, 0]:
         logger.info("CFG (after gpu  configuration):")

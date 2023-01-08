@@ -17,6 +17,7 @@ BiEncoderPassage = collections.namedtuple("BiEncoderPassage", ["text", "title"])
 
 
 def get_dpr_files(source_name) -> List[str]:
+    print(f"Source name: {source_name}")
     if os.path.exists(source_name) or glob.glob(source_name):
         return glob.glob(source_name)
     else:
@@ -53,6 +54,7 @@ class JsonQADataset(Dataset):
             query_special_suffix=query_special_suffix,
         )
         self.file = file
+        print(f"### File: {self.file}")
         self.data_files = []
         self.normalize = normalize
         self.exclude_gold = exclude_gold

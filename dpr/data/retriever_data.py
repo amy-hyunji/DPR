@@ -107,6 +107,9 @@ class CsvQASrc(QASrc):
             reader = csv.reader(ifile, delimiter="\t")
             for row in reader:
                 question = row[self.question_col]
+                print(f"row: {row}")
+                print(f"self.answers_col: {self.answers_col}")
+                print(f"row[self.answers_col]: {row[self.answers_col]}")
                 answers = eval(row[self.answers_col])
                 id = None
                 if self.id_col >= 0:

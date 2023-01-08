@@ -29,7 +29,7 @@ local_rank: -1
 global_loss_buf_sz: 592000
 device:
 distributed_world_size:
-distributed_port:
+distributed_port: 
 distributed_init_method:
 
 no_cuda: False

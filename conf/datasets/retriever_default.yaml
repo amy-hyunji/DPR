@@ -1,8 +1,18 @@
 # @package _group_
 
+hotpotqa_test:
+  _target_: dpr.data.retriever_data.CsvQASrc
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/hotpotqa.test_query_pseudo_ans.tsv
+  #query_special_suffix: '?'
+
+eli5_test:
+  _target_: dpr.data.retriever_data.CsvQASrc
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/eli5.test_query_pseudo_ans.tsv
+  #query_special_suffix: '?'
+
 nq_test:
   _target_: dpr.data.retriever_data.CsvQASrc
-  file: data.retriever.qas.nq-test
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/nq.test_query_pseudo_ans.tsv
   #query_special_suffix: '?'
 
 nq_train:
@@ -15,7 +25,8 @@ nq_dev:
 
 trivia_test:
   _target_: dpr.data.retriever_data.CsvQASrc
-  file: data.retriever.qas.trivia-test
+  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/triviaqa.test_query_pseudo_ans.tsv 
+  #file: data.retriever.qas.trivia-test
 
 trivia_train:
   _target_: dpr.data.retriever_data.CsvQASrc
