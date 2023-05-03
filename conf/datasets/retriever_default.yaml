@@ -1,5 +1,10 @@
 # @package _group_
 
+zsre_test:
+  _target_: dpr.data.retriever_data.CsvQASrc
+  file: /home/hyunji/DPR/dpr/downloads/data/retriever/zsre.test_query_pseudo_ans.tsv
+  #query_special_suffix: '?'
+
 hotpotqa_test:
   _target_: dpr.data.retriever_data.CsvQASrc
   file: /data/junhahyung/DPR/dpr/downloads/data/retriever/hotpotqa.test_query_pseudo_ans.tsv

@@ -1,19 +1,19 @@
 import json
 import jsonlines
 
-data = "eli5"
+data = "structured_zeroshot"
 #pred_f = "/data/junhahyung/DPR/outputs/2023-01-04/15-25-34/d_qa_nq_result.json"
 #pred_f = "/data/junhahyung/DPR/outputs/2023-01-04/16-03-17/d_qa_hotpotqa_result.json"
-pred_f = "/data/junhahyung/DPR/outputs/2023-01-04/16-03-25/d_qa_eli5_result.json"
+pred_f = "/home/hyunji/DPR/outputs/2023-01-10/11-45-58/d_kilt_zsre_result.json"
 #pred_f = "/data/junhahyung/DPR/outputs/2023-01-04/16-02-54/d_qa_trivia_result.json"
-kilt = f"/data/junhahyung/contextualized_GENRE/dataset/total_qa/{data}-test_without_answers-kilt.jsonl"
+kilt = f"/home/hyunji/contextualized_GENRE/dataset/total_nq/t5_large.nq_full.w_para/zsre/{data}-test_without_answers-kilt.jsonl"
 
 query2id = {}
 with jsonlines.open(kilt) as f:
    for elem in f.iter():
       query2id[elem["input"]] = elem["id"]
 
-title2id = json.load(open("/data/junhahyung/contextualized_GENRE/dataset/kilt_title2id.json"))
+title2id = json.load(open("/home/hyunjicontextualized_GENRE/dataset/kilt_title2id.json"))
 
 ret = []
 f = json.load(open(pred_f))
