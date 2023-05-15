@@ -20,9 +20,12 @@ from torch import nn
 
 if transformers.__version__.startswith("4"):
     from transformers import BertConfig, BertModel
+    from transformers import GPT2Config, GPT2Model
     from transformers import AdamW
     from transformers import BertTokenizer
+    from transformers import GPT2Tokenizer
     from transformers import RobertaTokenizer
+    from transformers import AutoTokenizer, AutoModelForCausalLM, AutoConfig, GPTNeoForCausalLM
 else:
     from transformers.modeling_bert import BertConfig, BertModel
     from transformers.optimization import AdamW
@@ -31,10 +34,265 @@ else:
 
 from dpr.utils.data_utils import Tensorizer
 from dpr.models.biencoder import BiEncoder
+from dpr.models.split_biencoder import SplitBiEncoder
 from .reader import Reader
 
 logger = logging.getLogger(__name__)
 
+def get_gptNeo_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    question_encoder = HFGPTNeoDecoder.init_decoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+    ctx_encoder = HFGPTNeoDecoder.init_decoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+
+    fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
+    biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+
+    optimizer = (
+        get_optimizer(
+            biencoder,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    tensorizer = get_gpt2_tensorizer(cfg)
+    return tensorizer, biencoder, optimizer
+
+def get_gpt2_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    question_encoder = HFGPT2Decoder.init_decoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+    ctx_encoder = HFGPT2Decoder.init_decoder(
+        cfg.encoder.pretrained_model_cfg,
+        projection_dim=cfg.encoder.projection_dim,
+        dropout=dropout,
+        pretrained=cfg.encoder.pretrained,
+        **kwargs
+    )
+
+    fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
+    biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+
+    optimizer = (
+        get_optimizer(
+            biencoder,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    tensorizer = get_gpt2_tensorizer(cfg)
+    return tensorizer, biencoder, optimizer
+
+
+def get_mean2_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    # question_encoder = HFGPT2Decoder.init_decoder(
+    #     cfg.encoder.pretrained_model_cfg,
+    #     projection_dim=cfg.encoder.projection_dim,
+    #     dropout=dropout,
+    #     pretrained=cfg.encoder.pretrained,
+    #     **kwargs
+    # )
+
+    if 'gpt-neo' in cfg.encoder.pretrained_model_cfg:
+        question_encoder = HFGPTNeoMean.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    elif 'gpt2' in cfg.encoder.pretrained_model_cfg:
+        question_encoder = HFGPT2Mean.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    else:
+        assert False
+
+    if 'gpt-neo' in cfg.encoder.pretrained_model_cfg:
+        ctx_encoder = HFGPTNeoMean.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    elif 'gpt2' in cfg.encoder.pretrained_model_cfg:
+        ctx_encoder = HFGPT2Mean.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    else:
+        assert False
+
+    fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
+    biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+
+    optimizer = (
+        get_optimizer(
+            biencoder,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    tensorizer = get_gpt2_tensorizer(cfg)
+    return tensorizer, biencoder, optimizer
+
+def get_mean_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    # question_encoder = HFGPT2Decoder.init_decoder(
+    #     cfg.encoder.pretrained_model_cfg,
+    #     projection_dim=cfg.encoder.projection_dim,
+    #     dropout=dropout,
+    #     pretrained=cfg.encoder.pretrained,
+    #     **kwargs
+    # )
+
+    if 'gpt-neo' in cfg.encoder.pretrained_model_cfg:
+        question_encoder = HFGPTNeoDecoder.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    elif 'gpt2' in cfg.encoder.pretrained_model_cfg:
+        question_encoder = HFGPT2Decoder.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    else:
+        assert False
+
+    if 'gpt-neo' in cfg.encoder.pretrained_model_cfg:
+        ctx_encoder = HFGPTNeoMean.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    elif 'gpt2' in cfg.encoder.pretrained_model_cfg:
+        ctx_encoder = HFGPT2Mean.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    else:
+        assert False
+
+    fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
+    biencoder = BiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+
+    optimizer = (
+        get_optimizer(
+            biencoder,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    tensorizer = get_gpt2_tensorizer(cfg)
+    return tensorizer, biencoder, optimizer
+
+def get_freeze_components(cfg, inference_only: bool = False, **kwargs):
+    dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
+    if 'gpt-neo' in cfg.encoder.pretrained_model_cfg:
+        question_encoder = HFGPTNeoDecoder.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    elif 'gpt2' in cfg.encoder.pretrained_model_cfg:
+        question_encoder = HFGPT2Decoder.init_decoder(
+            cfg.encoder.pretrained_model_cfg,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    else:
+        assert False
+
+    if cfg.encoder.pretrained_file is not None:
+        ctx_encoder = HFBertEncoder.init_encoder(
+            cfg.encoder.pretrained_file,
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+    else:
+        ctx_encoder = HFBertEncoder.init_encoder(
+            "bert-base-uncased",
+            projection_dim=cfg.encoder.projection_dim,
+            dropout=dropout,
+            pretrained=cfg.encoder.pretrained,
+            **kwargs
+        )
+
+    fix_ctx_encoder = cfg.encoder.fix_ctx_encoder if hasattr(cfg.encoder, "fix_ctx_encoder") else False
+    biencoder = SplitBiEncoder(question_encoder, ctx_encoder, fix_ctx_encoder=fix_ctx_encoder)
+
+    optimizer = (
+        get_optimizer(
+            biencoder,
+            learning_rate=cfg.train.learning_rate,
+            adam_eps=cfg.train.adam_eps,
+            weight_decay=cfg.train.weight_decay,
+        )
+        if not inference_only
+        else None
+    )
+
+    ctx_tensorizer = get_bert_tensorizer(cfg, model="bert-base-uncased")
+    q_tensorizer = get_gpt2_tensorizer(cfg)
+    return q_tensorizer, ctx_tensorizer, biencoder, optimizer
 
 def get_bert_biencoder_components(cfg, inference_only: bool = False, **kwargs):
     dropout = cfg.encoder.dropout if hasattr(cfg.encoder, "dropout") else 0.0
@@ -100,15 +358,27 @@ def get_bert_reader_components(cfg, inference_only: bool = False, **kwargs):
 
 
 # TODO: unify tensorizer init methods
-def get_bert_tensorizer(cfg):
+def get_bert_tensorizer(cfg, model=None):
     sequence_length = cfg.encoder.sequence_length
-    pretrained_model_cfg = cfg.encoder.pretrained_model_cfg
+    if model is None:
+        pretrained_model_cfg = cfg.encoder.pretrained_model_cfg
+    else:
+        pretrained_model_cfg = model
     tokenizer = get_bert_tokenizer(pretrained_model_cfg, do_lower_case=cfg.do_lower_case)
     if cfg.special_tokens:
         _add_special_tokens(tokenizer, cfg.special_tokens)
 
     return BertTensorizer(tokenizer, sequence_length)
 
+# TODO: unify tensorizer init methods
+def get_gpt2_tensorizer(cfg):
+    sequence_length = cfg.encoder.sequence_length
+    pretrained_model_cfg = cfg.encoder.pretrained_model_cfg
+    tokenizer = get_gpt2_tokenizer(pretrained_model_cfg, do_lower_case=cfg.do_lower_case)
+    if cfg.special_tokens:
+        _add_special_tokens(tokenizer, cfg.special_tokens)
+
+    return GPT2Tensorizer(tokenizer, sequence_length)
 
 def get_bert_tensorizer_p(
     pretrained_model_cfg: str, sequence_length: int, do_lower_case: bool = True, special_tokens: List[str] = []
@@ -190,10 +460,340 @@ def get_optimizer_grouped(
 def get_bert_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
     return BertTokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
 
+def get_gpt2_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
+    return GPT2Tokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
 
 def get_roberta_tokenizer(pretrained_cfg_name: str, do_lower_case: bool = True):
     # still uses HF code for tokenizer since they are the same
     return RobertaTokenizer.from_pretrained(pretrained_cfg_name, do_lower_case=do_lower_case)
+
+
+class HFGPTNeoMean(GPTNeoForCausalLM):
+    def __init__(self, config, project_dim: int = 0):
+        GPTNeoForCausalLM.__init__(self, config)
+        assert config.hidden_size > 0, "Decoder hidden_size can't be zero"
+        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
+        self.init_weights()
+
+    @classmethod
+    def init_decoder(
+        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
+    ):
+        logger.info("Initializing HF GPTNeo Decoder. cfg_name=%s", cfg_name)
+        cfg = AutoConfig.from_pretrained(cfg_name if cfg_name else "EleutherAI/gpt-neo-1.3B")
+        if dropout != 0:
+            cfg.attention_probs_dropout_prob = dropout
+            cfg.hidden_dropout_prob = dropout
+
+        if pretrained:
+            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
+        else:
+            return HFGPTNeoMean(cfg, project_dim=projection_dim)
+
+    def forward(
+        self,
+        input_ids: T,
+        token_type_ids: T,
+        attention_mask: T,
+        representation_token_pos=-1,
+    ) -> Tuple[T, ...]:
+
+        out = super().forward(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=True,
+        )
+
+        # HF >4.0 version support
+        if transformers.__version__.startswith("4") and isinstance(
+            out,
+            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+        ):
+            sequence_output = out.hidden_states[-1] #out.last_hidden_state
+            pooled_output = None
+            hidden_states = out.hidden_states
+
+        elif self.config.output_hidden_states:
+            sequence_output, pooled_output, hidden_states = out
+        else:
+            
+            hidden_states = None
+            out = super().forward(
+                input_ids=input_ids,
+                token_type_ids=token_type_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+            )
+            # sequence_output, pooled_output = out
+            sequence_output = out.hidden_states[-1] #out.last_hidden_state
+            pooled_output = None 
+            hidden_states = out.hidden_states
+
+        # if isinstance(representation_token_pos, int):
+        pooled_output = torch.mean(sequence_output, dim=1) #[:, -1, :]
+        # else:  # treat as a tensor
+        #     assert False
+        #     bsz = sequence_output.size(0)
+        #     assert representation_token_pos.size(0) == bsz, "query bsz={} while representation_token_pos bsz={}".format(
+        #         bsz, representation_token_pos.size(0)
+        #     )
+        #     pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
+
+        if self.encode_proj:
+            pooled_output = self.encode_proj(pooled_output)
+        return sequence_output, pooled_output, hidden_states
+
+    # TODO: make a super class for all encoders
+    def get_out_size(self):
+        if self.encode_proj:
+            return self.encode_proj.out_features
+        return self.config.hidden_size
+
+
+class HFGPTNeoDecoder(GPTNeoForCausalLM):
+    def __init__(self, config, project_dim: int = 0):
+        GPTNeoForCausalLM.__init__(self, config)
+        assert config.hidden_size > 0, "Decoder hidden_size can't be zero"
+        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
+        self.init_weights()
+
+    @classmethod
+    def init_decoder(
+        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
+    ) -> BertModel:
+        logger.info("Initializing HF GPTNeo Decoder. cfg_name=%s", cfg_name)
+        cfg = AutoConfig.from_pretrained(cfg_name if cfg_name else "EleutherAI/gpt-neo-1.3B")
+        if dropout != 0:
+            cfg.attention_probs_dropout_prob = dropout
+            cfg.hidden_dropout_prob = dropout
+
+        if pretrained:
+            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
+        else:
+            return HFGPTNeoDecoder(cfg, project_dim=projection_dim)
+
+    def forward(
+        self,
+        input_ids: T,
+        token_type_ids: T,
+        attention_mask: T,
+        representation_token_pos=0,
+    ) -> Tuple[T, ...]:
+
+        out = super().forward(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+            output_hidden_states=True,
+        )
+
+        # HF >4.0 version support
+        if transformers.__version__.startswith("4") and isinstance(
+            out,
+            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+        ):
+            sequence_output = out.hidden_states[-1] #out.last_hidden_state
+            pooled_output = None
+            hidden_states = out.hidden_states
+
+        elif self.config.output_hidden_states:
+            sequence_output, pooled_output, hidden_states = out
+        else:
+            
+            hidden_states = None
+            out = super().forward(
+                input_ids=input_ids,
+                token_type_ids=token_type_ids,
+                attention_mask=attention_mask,
+                output_hidden_states=True,
+            )
+            # sequence_output, pooled_output = out
+            sequence_output = out.hidden_states[-1] #out.last_hidden_state
+            pooled_output = None 
+            hidden_states = out.hidden_states
+
+        # if isinstance(representation_token_pos, int):
+        pooled_output = sequence_output[:, -1, :]
+        # else:  # treat as a tensor
+        #     assert False
+        #     bsz = sequence_output.size(0)
+        #     assert representation_token_pos.size(0) == bsz, "query bsz={} while representation_token_pos bsz={}".format(
+        #         bsz, representation_token_pos.size(0)
+        #     )
+        #     pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
+
+        if self.encode_proj:
+            pooled_output = self.encode_proj(pooled_output)
+        return sequence_output, pooled_output, hidden_states
+
+    # TODO: make a super class for all encoders
+    def get_out_size(self):
+        if self.encode_proj:
+            return self.encode_proj.out_features
+        return self.config.hidden_size
+
+class HFGPT2Mean(GPT2Model):
+    def __init__(self, config, project_dim: int = 0):
+        GPT2Model.__init__(self, config)
+        assert config.hidden_size > 0, "Decoder hidden_size can't be zero"
+        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
+        self.init_weights()
+
+    @classmethod
+    def init_decoder(
+        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
+    ) -> BertModel:
+        logger.info("Initializing HF GPT2 Decoder. cfg_name=%s", cfg_name)
+        cfg = GPT2Config.from_pretrained(cfg_name if cfg_name else "gpt2")
+        if dropout != 0:
+            cfg.attention_probs_dropout_prob = dropout
+            cfg.hidden_dropout_prob = dropout
+
+        if pretrained:
+            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
+        else:
+            return HFGPT2Mean(cfg, project_dim=projection_dim)
+
+    def forward(
+        self,
+        input_ids: T,
+        token_type_ids: T,
+        attention_mask: T,
+        representation_token_pos=-1,
+    ) -> Tuple[T, ...]:
+
+        out = super().forward(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+        )
+
+        # HF >4.0 version support
+        if transformers.__version__.startswith("4") and isinstance(
+            out,
+            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+        ):
+            sequence_output = out.last_hidden_state
+            pooled_output = None
+            hidden_states = out.hidden_states
+
+        elif self.config.output_hidden_states:
+            sequence_output, pooled_output, hidden_states = out
+        else:
+            
+            hidden_states = None
+            out = super().forward(
+                input_ids=input_ids,
+                token_type_ids=token_type_ids,
+                attention_mask=attention_mask,
+            )
+            # sequence_output, pooled_output = out
+            sequence_output = out.last_hidden_state
+            pooled_output = None 
+            hidden_states = out.hidden_states
+
+        # if isinstance(representation_token_pos, int):
+        pooled_output = torch.mean(sequence_output, dim=1) #[:, -1, :]
+        # else:  # treat as a tensor
+        #     assert False
+        #     bsz = sequence_output.size(0)
+        #     assert representation_token_pos.size(0) == bsz, "query bsz={} while representation_token_pos bsz={}".format(
+        #         bsz, representation_token_pos.size(0)
+        #     )
+        #     pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
+
+        if self.encode_proj:
+            pooled_output = self.encode_proj(pooled_output)
+        return sequence_output, pooled_output, hidden_states
+
+    # TODO: make a super class for all encoders
+    def get_out_size(self):
+        if self.encode_proj:
+            return self.encode_proj.out_features
+        return self.config.hidden_size
+
+
+class HFGPT2Decoder(GPT2Model):
+    def __init__(self, config, project_dim: int = 0):
+        GPT2Model.__init__(self, config)
+        assert config.hidden_size > 0, "Decoder hidden_size can't be zero"
+        self.encode_proj = nn.Linear(config.hidden_size, project_dim) if project_dim != 0 else None
+        self.init_weights()
+
+    @classmethod
+    def init_decoder(
+        cls, cfg_name: str, projection_dim: int = 0, dropout: float = 0.1, pretrained: bool = True, **kwargs
+    ) -> BertModel:
+        logger.info("Initializing HF GPT2 Decoder. cfg_name=%s", cfg_name)
+        cfg = GPT2Config.from_pretrained(cfg_name if cfg_name else "gpt2")
+        if dropout != 0:
+            cfg.attention_probs_dropout_prob = dropout
+            cfg.hidden_dropout_prob = dropout
+
+        if pretrained:
+            return cls.from_pretrained(cfg_name, config=cfg, project_dim=projection_dim, **kwargs)
+        else:
+            return HFGPT2Decoder(cfg, project_dim=projection_dim)
+
+    def forward(
+        self,
+        input_ids: T,
+        token_type_ids: T,
+        attention_mask: T,
+        representation_token_pos=0,
+    ) -> Tuple[T, ...]:
+
+        out = super().forward(
+            input_ids=input_ids,
+            token_type_ids=token_type_ids,
+            attention_mask=attention_mask,
+        )
+
+        # HF >4.0 version support
+        if transformers.__version__.startswith("4") and isinstance(
+            out,
+            transformers.modeling_outputs.BaseModelOutputWithPoolingAndCrossAttentions,
+        ):
+            sequence_output = out.last_hidden_state
+            pooled_output = None
+            hidden_states = out.hidden_states
+
+        elif self.config.output_hidden_states:
+            sequence_output, pooled_output, hidden_states = out
+        else:
+            
+            hidden_states = None
+            out = super().forward(
+                input_ids=input_ids,
+                token_type_ids=token_type_ids,
+                attention_mask=attention_mask,
+            )
+            # sequence_output, pooled_output = out
+            sequence_output = out.last_hidden_state
+            pooled_output = None 
+            hidden_states = out.hidden_states
+
+        # if isinstance(representation_token_pos, int):
+        pooled_output = sequence_output[:, -1, :]
+        # else:  # treat as a tensor
+        #     assert False
+        #     bsz = sequence_output.size(0)
+        #     assert representation_token_pos.size(0) == bsz, "query bsz={} while representation_token_pos bsz={}".format(
+        #         bsz, representation_token_pos.size(0)
+        #     )
+        #     pooled_output = torch.stack([sequence_output[i, representation_token_pos[i, 1], :] for i in range(bsz)])
+
+        if self.encode_proj:
+            pooled_output = self.encode_proj(pooled_output)
+        return sequence_output, pooled_output, hidden_states
+
+    # TODO: make a super class for all encoders
+    def get_out_size(self):
+        if self.encode_proj:
+            return self.encode_proj.out_features
+        return self.config.hidden_size
+
 
 
 class HFBertEncoder(BertModel):
@@ -270,6 +870,147 @@ class HFBertEncoder(BertModel):
         if self.encode_proj:
             return self.encode_proj.out_features
         return self.config.hidden_size
+
+class GPTNeoTensorizer(Tensorizer):
+    def __init__(self, tokenizer: BertTokenizer, max_length: int, pad_to_max: bool = True):
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.pad_to_max = pad_to_max
+        self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+
+    def text_to_tensor(
+        self,
+        text: str,
+        title: str = None,
+        add_special_tokens: bool = True,
+        apply_max_len: bool = True,
+    ):
+        if not isinstance(text, str):
+            text = ""
+        text = text.strip()
+        # tokenizer automatic padding is explicitly disabled since its inconsistent behavior
+        # TODO: move max len to methods params?
+
+        if title:
+            token_ids = self.tokenizer.encode(
+                title,
+                text_pair=text,
+                add_special_tokens=add_special_tokens,
+                max_length=self.max_length if apply_max_len else 10000,
+                pad_to_max_length=False,
+                truncation=True,
+            )
+        else:
+            token_ids = self.tokenizer.encode(
+                text,
+                add_special_tokens=add_special_tokens,
+                max_length=self.max_length if apply_max_len else 10000,
+                pad_to_max_length=False,
+                truncation=True,
+            )
+        seq_len = self.max_length
+        if self.pad_to_max and len(token_ids) < seq_len:
+            # token_ids = rnn_utils.pad_sequence(token_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id, total_length=seq_len)
+            token_ids = token_ids + [self.tokenizer.pad_token_id] * (seq_len - len(token_ids))
+        if len(token_ids) >= seq_len:
+            token_ids = token_ids[0:seq_len] if apply_max_len else token_ids
+            # token_ids[-1] = self.tokenizer.sep_token_id
+            token_ids[-1] = self.tokenizer.eos_token_id
+
+        return torch.tensor(token_ids)
+
+    def get_pair_separator_ids(self) -> T:
+        return torch.tensor([self.tokenizer.sep_token_id])
+
+    def get_pad_id(self) -> int:
+        return self.tokenizer.pad_token_id
+
+    def get_attn_mask(self, tokens_tensor: T) -> T:
+        return tokens_tensor != self.get_pad_id()
+
+    def is_sub_word_id(self, token_id: int):
+        token = self.tokenizer.convert_ids_to_tokens([token_id])[0]
+        return token.startswith("##") or token.startswith(" ##")
+
+    def to_string(self, token_ids, skip_special_tokens=True):
+        return self.tokenizer.decode(token_ids, skip_special_tokens=skip_special_tokens)
+
+    def set_pad_to_max(self, do_pad: bool):
+        self.pad_to_max = do_pad
+
+    def get_token_id(self, token: str) -> int:
+        return self.tokenizer.vocab[token]
+
+class GPT2Tensorizer(Tensorizer):
+    def __init__(self, tokenizer: BertTokenizer, max_length: int, pad_to_max: bool = True):
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+        self.pad_to_max = pad_to_max
+        self.tokenizer.pad_token_id = self.tokenizer.eos_token_id
+
+    def text_to_tensor(
+        self,
+        text: str,
+        title: str = None,
+        add_special_tokens: bool = True,
+        apply_max_len: bool = True,
+    ):
+        if not isinstance(text, str):
+            text = ""
+        text = text.strip()
+        # tokenizer automatic padding is explicitly disabled since its inconsistent behavior
+        # TODO: move max len to methods params?
+
+        if title:
+            token_ids = self.tokenizer.encode(
+                title,
+                text_pair=text,
+                add_special_tokens=add_special_tokens,
+                max_length=self.max_length if apply_max_len else 10000,
+                pad_to_max_length=False,
+                truncation=True,
+            )
+        else:
+            token_ids = self.tokenizer.encode(
+                text,
+                add_special_tokens=add_special_tokens,
+                max_length=self.max_length if apply_max_len else 10000,
+                pad_to_max_length=False,
+                truncation=True,
+            )
+        seq_len = self.max_length
+        if self.pad_to_max and len(token_ids) < seq_len:
+            # token_ids = rnn_utils.pad_sequence(token_ids, batch_first=True, padding_value=self.tokenizer.pad_token_id, total_length=seq_len)
+            token_ids = token_ids + [self.tokenizer.pad_token_id] * (seq_len - len(token_ids))
+        if len(token_ids) >= seq_len:
+            token_ids = token_ids[0:seq_len] if apply_max_len else token_ids
+            # token_ids[-1] = self.tokenizer.sep_token_id
+            token_ids[-1] = self.tokenizer.eos_token_id
+
+        return torch.tensor(token_ids)
+
+    def get_pair_separator_ids(self) -> T:
+        return torch.tensor([self.tokenizer.sep_token_id])
+
+    def get_pad_id(self) -> int:
+        return self.tokenizer.pad_token_id
+
+    def get_attn_mask(self, tokens_tensor: T) -> T:
+        return tokens_tensor != self.get_pad_id()
+
+    def is_sub_word_id(self, token_id: int):
+        token = self.tokenizer.convert_ids_to_tokens([token_id])[0]
+        return token.startswith("##") or token.startswith(" ##")
+
+    def to_string(self, token_ids, skip_special_tokens=True):
+        return self.tokenizer.decode(token_ids, skip_special_tokens=skip_special_tokens)
+
+    def set_pad_to_max(self, do_pad: bool):
+        self.pad_to_max = do_pad
+
+    def get_token_id(self, token: str) -> int:
+        return self.tokenizer.vocab[token]
+
 
 
 class BertTensorizer(Tensorizer):

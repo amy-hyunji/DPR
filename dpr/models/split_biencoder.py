@@ -59,7 +59,7 @@ def cosine_scores(q_vector: T, ctx_vectors: T):
     return F.cosine_similarity(q_vector, ctx_vectors, dim=1)
 
 
-class BiEncoder(nn.Module):
+class SplitBiEncoder(nn.Module):
     """Bi-Encoder model component. Encapsulates query/question and context/passage encoders."""
 
     def __init__(
@@ -69,7 +69,7 @@ class BiEncoder(nn.Module):
         fix_q_encoder: bool = False,
         fix_ctx_encoder: bool = False,
     ):
-        super(BiEncoder, self).__init__()
+        super(SplitBiEncoder, self).__init__()
         self.question_model = question_model
         # self.question_linear = torch.nn.Linear(768, 4096)
         self.ctx_model = ctx_model
@@ -253,7 +253,8 @@ class BiEncoder(nn.Module):
     def create_biencoder_input(
         self,
         samples: List[BiEncoderSample],
-        tensorizer: Tensorizer,
+        q_tensorizer: Tensorizer,
+        ctx_tensorizer: Tensorizer,
         insert_title: bool,
         num_hard_negatives: int = 0,
         num_other_negatives: int = 0,
@@ -309,7 +310,7 @@ class BiEncoder(nn.Module):
 
             current_ctxs_len = len(ctx_tensors)
             sample_ctxs_tensors = [
-                tensorizer.text_to_tensor(ctx.text, title=ctx.title if (insert_title and ctx.title) else None)
+                ctx_tensorizer.text_to_tensor(ctx.text, title=ctx.title if (insert_title and ctx.title) else None)
                 for ctx in all_ctxs
             ]
 
@@ -328,12 +329,12 @@ class BiEncoder(nn.Module):
             if query_token:
                 # TODO: tmp workaround for EL, remove or revise
                 if query_token == "[START_ENT]":
-                    query_span = _select_span_with_token(question, tensorizer, token_str=query_token)
+                    query_span = _select_span_with_token(question, q_tensorizer, token_str=query_token)
                     question_tensors.append(query_span)
                 else:
-                    question_tensors.append(tensorizer.text_to_tensor(" ".join([query_token, question])))
+                    question_tensors.append(q_tensorizer.text_to_tensor(" ".join([query_token, question])))
             else:
-                question_tensors.append(tensorizer.text_to_tensor(question))
+                question_tensors.append(q_tensorizer.text_to_tensor(question))
 
         ctxs_tensor = torch.cat([ctx.view(1, -1) for ctx in ctx_tensors], dim=0)
         questions_tensor = torch.cat([q.view(1, -1) for q in question_tensors], dim=0)

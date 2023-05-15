@@ -10,7 +10,18 @@ wow_dev:
 
 np_llama:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: /home/hyunji/DPR/dpr/downloads/train.json 
+  file: /data/project/rw/DPR/dpr/downloads/train.json 
+
+np_llama_hard:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/project/rw/DPR/dpr/downloads/train.hardneg.json 
+
+
+np_llama_test:
+  _target_: dpr.data.biencoder_data.JsonQADataset
+  file: /data/project/rw/DPR/dpr/downloads/test.json 
+
+
 
 zsre_train:
   _target_: dpr.data.biencoder_data.JsonQADataset
@@ -52,15 +63,15 @@ qa_dev:
 
 nq_train:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-nq-train.json #data.retriever.kilt-nq-train
+  file: /data/project/rw/DPR/dpr/downloads/data/retriever/nq-train.json #data.retriever.kilt-nq-train
 
 nq_train_hn1:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: data.retriever.nq-adv-hn-train
+  file: /data/project/rw/DPR/dpr/downloads/data/retriever/nq-adv-hn-train.json 
 
 nq_dev:
   _target_: dpr.data.biencoder_data.JsonQADataset
-  file: /data/junhahyung/DPR/dpr/downloads/data/retriever/kilt-nq-dev.json #data.retriever.kilt-nq-dev
+  file: /data/project/rw/DPR/dpr/downloads/data/retriever/nq-dev.json #data.retriever.kilt-nq-dev
 
 trivia_train:
   _target_: dpr.data.biencoder_data.JsonQADataset

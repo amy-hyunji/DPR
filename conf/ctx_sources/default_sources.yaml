@@ -2,5 +2,5 @@
 
 dpr_wiki:
   _target_: dpr.data.retriever_data.CsvCtxSrc
-  file: /home/hyunji/DPR/dpr/downloads/data/wikipedia_split/dpr_kilt_corpus.tsv  #data.wikipedia_split.psgs_w100
+  file: data.wikipedia_split.psgs_w100 #/data/project/rw/DPR/dpr/downloads/kilt_nq_corpus_18590.tsv
   id_prefix: 'wiki:'

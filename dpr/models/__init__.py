@@ -19,6 +19,40 @@ def init_hf_bert_biencoder(args, **kwargs):
 
     return get_bert_biencoder_components(args, **kwargs)
 
+def init_hf_gpt2(args, **kwargs):
+    if importlib.util.find_spec("transformers") is None:
+        raise RuntimeError("Please install transformers lib")
+    from .hf_models import get_gpt2_components
+
+    return get_gpt2_components(args, **kwargs)
+
+def init_hf_gptNeo(args, **kwargs):
+    if importlib.util.find_spec("transformers") is None:
+        raise RuntimeError("Please install transformers lib")
+    from .hf_models import get_gptNeo_components
+
+    return get_gptNeo_components(args, **kwargs)
+
+def init_hf_mean(args, **kwargs):
+    if importlib.util.find_spec("transformers") is None:
+        raise RuntimeError("Please install transformers lib")
+    from .hf_models import get_mean_components
+
+    return get_mean_components(args, **kwargs)
+
+def init_hf_mean2(args, **kwargs):
+    if importlib.util.find_spec("transformers") is None:
+        raise RuntimeError("Please install transformers lib")
+    from .hf_models import get_mean2_components
+
+    return get_mean2_components(args, **kwargs)
+
+def init_hf_freeze(args, **kwargs):
+    if importlib.util.find_spec("transformers") is None:
+        raise RuntimeError("Please install transformers lib")
+    from .hf_models import get_freeze_components
+
+    return get_freeze_components(args, **kwargs)
 
 def init_hf_bert_reader(args, **kwargs):
     if importlib.util.find_spec("transformers") is None:
@@ -61,6 +95,13 @@ def init_hf_roberta_tenzorizer(args, **kwargs):
 
 BIENCODER_INITIALIZERS = {
     "hf_bert": init_hf_bert_biencoder,
+    "hf_gpt2": init_hf_gpt2,
+    "hf_gptj": init_hf_gptNeo,
+    "hf_freeze": init_hf_freeze,
+    # "hf_freeze_gptj": init_hf_freeze,
+    "hf_mean": init_hf_mean,
+    "hf_mean2": init_hf_mean2,
+    # "hf_mean_gptj": init_hf_mean,
     "pytext_bert": init_pytext_bert_biencoder,
     "fairseq_roberta": init_fairseq_roberta_biencoder,
 }

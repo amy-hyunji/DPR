@@ -76,7 +76,7 @@ class BiEncoderTrainer(object):
             saved_state = load_states_from_checkpoint(model_file)
             set_cfg_params_from_state(saved_state.encoder_params, cfg)
 
-        tensorizer, model, optimizer = init_biencoder_components(cfg.encoder.encoder_model_type, cfg)
+        q_tensorizer, ctx_tensorizer, model, optimizer = init_biencoder_components(cfg.encoder.encoder_model_type, cfg)
 
         model, optimizer = setup_for_distributed_mode(
             model,
@@ -89,7 +89,8 @@ class BiEncoderTrainer(object):
         )
         self.biencoder = model
         self.optimizer = optimizer
-        self.tensorizer = tensorizer
+        self.q_tensorizer = q_tensorizer
+        self.ctx_tensorizer = ctx_tensorizer
         self.start_epoch = 0
         self.start_batch = 0
         self.scheduler_state = None
@@ -247,7 +248,8 @@ class BiEncoderTrainer(object):
 
             biencoder_input = biencoder.create_biencoder_input(
                 samples_batch,
-                self.tensorizer,
+                self.q_tensorizer,
+                self.ctx_tensorizer,
                 True,
                 num_hard_negatives,
                 num_other_negatives,
@@ -256,13 +258,14 @@ class BiEncoderTrainer(object):
 
             # get the token to be used for representation selection
             ds_cfg = self.ds_cfg.dev_datasets[dataset]
-            rep_positions = ds_cfg.selector.get_positions(biencoder_input.question_ids, self.tensorizer)
+            rep_positions = ds_cfg.selector.get_positions(biencoder_input.question_ids, self.q_tensorizer)
             encoder_type = ds_cfg.encoder_type
 
             loss, correct_cnt = _do_biencoder_fwd_pass(
                 self.biencoder,
                 biencoder_input,
-                self.tensorizer,
+                self.q_tensorizer,
+                self.ctx_tensorizer,
                 cfg,
                 encoder_type=encoder_type,
                 rep_positions=rep_positions,
@@ -332,9 +335,10 @@ class BiEncoderTrainer(object):
             if isinstance(samples_batch, Tuple):
                 samples_batch, dataset = samples_batch
 
-            biencoder_input = biencoder.create_biencoder_input(
+            biencoder_input = biencoder.create_split_biencoder_input(
                 samples_batch,
-                self.tensorizer,
+                self.q_tensorizer,
+                self.ctx_tensorizer,
                 True,
                 num_hard_negatives,
                 num_other_negatives,
@@ -348,7 +352,7 @@ class BiEncoderTrainer(object):
             # get the token to be used for representation selection
             ds_cfg = self.ds_cfg.dev_datasets[dataset]
             encoder_type = ds_cfg.encoder_type
-            rep_positions = ds_cfg.selector.get_positions(biencoder_input.question_ids, self.tensorizer)
+            rep_positions = ds_cfg.selector.get_positions(biencoder_input.question_ids, self.q_tensorizer)
 
             # split contexts batch into sub batches since it is supposed to be too large to be processed in one batch
             for j, batch_start in enumerate(range(0, bsz, sub_batch_size)):
@@ -365,8 +369,8 @@ class BiEncoderTrainer(object):
                 ctx_ids_batch = ctxs_ids[batch_start : batch_start + sub_batch_size]
                 ctx_seg_batch = ctxs_segments[batch_start : batch_start + sub_batch_size]
 
-                q_attn_mask = self.tensorizer.get_attn_mask(q_ids)
-                ctx_attn_mask = self.tensorizer.get_attn_mask(ctx_ids_batch)
+                q_attn_mask = self.q_tensorizer.get_attn_mask(q_ids)
+                ctx_attn_mask = self.ctx_tensorizer.get_attn_mask(ctx_ids_batch)
                 with torch.no_grad():
                     q_dense, ctx_dense = self.biencoder(
                         q_ids,
@@ -464,9 +468,10 @@ class BiEncoderTrainer(object):
             data_iteration = train_data_iterator.get_iteration()
             random.seed(seed + epoch + data_iteration)
 
-            biencoder_batch = biencoder.create_biencoder_input(
+            biencoder_batch = biencoder.create_split_biencoder_input(
                 samples_batch,
-                self.tensorizer,
+                self.q_tensorizer,
+                self.ctx_tensorizer,
                 True,
                 num_hard_negatives,
                 num_other_negatives,
@@ -480,13 +485,14 @@ class BiEncoderTrainer(object):
 
             selector = ds_cfg.selector if ds_cfg else DEFAULT_SELECTOR
 
-            rep_positions = selector.get_positions(biencoder_batch.question_ids, self.tensorizer)
+            rep_positions = selector.get_positions(biencoder_batch.question_ids, self.q_tensorizer)
 
             loss_scale = cfg.loss_scale_factors[dataset] if cfg.loss_scale_factors else None
             loss, correct_cnt = _do_biencoder_fwd_pass(
                 self.biencoder,
                 biencoder_batch,
-                self.tensorizer,
+                self.q_tensorizer,
+                self.ctx_tensorizer,
                 cfg,
                 encoder_type=encoder_type,
                 rep_positions=rep_positions,
@@ -685,7 +691,8 @@ def _print_norms(model):
 def _do_biencoder_fwd_pass(
     model: nn.Module,
     input: BiEncoderBatch,
-    tensorizer: Tensorizer,
+    q_tensorizer: Tensorizer,
+    ctx_tensorizer: Tensorizer,
     cfg,
     encoder_type: str,
     rep_positions=0,
@@ -694,8 +701,8 @@ def _do_biencoder_fwd_pass(
 
     input = BiEncoderBatch(**move_to_device(input._asdict(), cfg.device))
 
-    q_attn_mask = tensorizer.get_attn_mask(input.question_ids)
-    ctx_attn_mask = tensorizer.get_attn_mask(input.context_ids)
+    q_attn_mask = q_tensorizer.get_attn_mask(input.question_ids)
+    ctx_attn_mask = ctx_tensorizer.get_attn_mask(input.context_ids)
 
     if model.training:
         model_out = model(
