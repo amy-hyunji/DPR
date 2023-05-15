@@ -1,0 +1,6 @@
+# @package _group_
+
+dpr_wiki:
+  _target_: dpr.data.retriever_data.CsvCtxSrc
+  file: /data/project/rw/DPR/dpr/downloads/data/wikipedia_split/nq-dev.pos_hardneg_passage.tsv
+  id_prefix: 'wiki:'
